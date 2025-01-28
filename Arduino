@@ -1,0 +1,21 @@
+#define ANEMOMETER_PIN A0  // Anemometer connected to analog pin A0
+
+void setup() {
+  Serial.begin(9600); // Start serial communication at 9600 baud
+  pinMode(ANEMOMETER_PIN, INPUT); // Set anemometer pin as input
+}
+
+void loop() {
+  int sensorValue = analogRead(ANEMOMETER_PIN); // Read value from anemometer sensor
+  float voltage = sensorValue * (5.0 / 1023.0); // Convert analog value to voltage
+
+  // Adjust the formula to calibrate wind speed values
+  float windSpeed = (voltage - 0.39) / 0.1; // Adjust as necessary
+  if (windSpeed < 0) windSpeed = 0; // Ensure wind speed is not negative
+
+  // Send wind speed over UART without units for easier parsing
+  Serial.println(windSpeed);
+  //Serial.println("m/s");
+
+  delay(1000); // Wait 1 second before next reading
+}
