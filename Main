@@ -1,0 +1,57 @@
+from guizero import App, Text
+import paho.mqtt.client as mqtt
+import json
+
+# MQTT Broker configuration
+BROKER = "broker.hivemq.com"  # Replace with your broker's IP
+PORT = 1883
+TOPICS = {
+    "temperature": "yrgo_ei23/temp_degC/grupp3",
+    "wind": "yrgo_ei23/vind_ms/grupp3"
+}
+
+# GUI update functions
+def update_temperature(value):
+    temp_text.value = f"Temperature: {value} °C"
+
+def update_wind(value):
+    wind_text.value = f"Wind Speed: {value} m/s"
+
+# MQTT callbacks
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected to MQTT broker.")
+        # Subscribe to topics
+        for topic in TOPICS.values():
+            client.subscribe(topic)
+            print(f"Subscribed to: {topic}")
+    else:
+        print(f"Connection failed with code {rc}.")
+
+def on_message(client, userdata, msg):
+    topic = msg.topic
+    payload = json.loads(msg.payload.decode('utf-8'))
+    if topic == TOPICS["temperature"]:
+        update_temperature(payload.get("temperature", "N/A"))
+    elif topic == TOPICS["wind"]:
+        update_wind(payload.get("wind_speed", "N/A"))
+
+# Initialize GUI
+app = App(title="MQTT Data Viewer", width=400, height=300)
+temp_text = Text(app, text="Temperature: Waiting for data...", size=14, color="blue")
+wind_text = Text(app, text="Wind Speed: Waiting for data...", size=14, color="green")
+
+# Initialize MQTT client
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+
+# Connect to MQTT broker
+try:
+    client.connect(BROKER, PORT, 60)
+    client.loop_start()
+except Exception as e:
+    print(f"Error connecting to MQTT broker: {e}")
+
+# Run the GUI
+app.display()
