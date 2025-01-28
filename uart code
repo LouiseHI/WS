@@ -1,0 +1,37 @@
+import serial
+import time
+
+def read_uart_data():
+    try:
+        # Configure UART on Raspberry Pi
+        ser = serial.Serial('/dev/serial0', 9600, timeout=1)
+        ser.flush()
+
+        print("Waiting for UART data...")
+        while True:  # Infinite loop to wait for and read UART data
+            # Check if there is data waiting in the UART buffer
+            if ser.in_waiting > 0:
+                # Read a line from UART and decode it
+                data = ser.readline().decode('utf-8').strip()
+                print(f"\nRaw data received: {data}")  # Update with raw data
+
+                # Remove "m/s" from the data if present
+                if "m/s" in data:
+                    data = data.replace("m/s", "").strip()
+
+                # Try converting the data to a float
+                try:
+                    wind_speed = float(data)  # Convert to float
+                    print(f"Valid wind speed: {wind_speed} m/s")  # Print valid data
+                    return wind_speed  # Return the valid wind speed
+                except ValueError:
+                    print(f"Invalid data format after cleaning: {data}")  # Handle invalid data format
+
+            else:
+                # No data received, stay in the waiting loop
+                print(".", end="", flush=True)  # Print a dot to indicate waiting
+                time.sleep(0.5)  # Wait briefly before checking again
+
+    except Exception as e:
+        print(f"Error reading from UART: {e}")
+        return None  # Return None if there is an error
