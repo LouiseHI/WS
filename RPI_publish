@@ -1,0 +1,69 @@
+import time
+import json
+import paho.mqtt.client as mqtt
+from sensors.ds18b20 import read_temperature  # Temperatur från DS18B20
+from sensors.uart_reader import read_uart_data  # Vindhastighet från UART
+
+# MQTT Broker configuration
+BROKER = "broker.hivemq.com"  # Byt ut med din brokers IP
+PORT = 1883
+TOPICS = {
+    "temperature": "yrgo_ei23/temp_degC/grupp3",
+    "wind": "yrgo_ei23/vind_ms/grupp3"
+}
+
+# Förväntade intervall
+TEMPERATURE_RANGE = (-40, 80)  # Temperaturintervall (°C)
+WIND_RANGE = (0, 3)            # Vindhastighetsintervall (m/s)
+
+# MQTT Client setup
+client = mqtt.Client()
+
+# Validera temperatur
+def validate_temperature(temp):
+    if temp is not None and TEMPERATURE_RANGE[0] <= temp <= TEMPERATURE_RANGE[1]:
+        return temp
+    return None  # Returnera None om temperaturen är utanför intervallet
+
+# Validera vindhastighet
+def validate_wind_speed(wind_speed):
+    if wind_speed is not None and WIND_RANGE[0] <= wind_speed <= WIND_RANGE[1]:
+        return wind_speed
+    return None  # Returnera None om vindhastigheten är utanför intervallet
+
+# Publicera temperatur och vindhastighet till MQTT
+def publish_data():
+    while True:
+        try:
+            # Temperatur
+            #temp_data = read_temperature()  # Läs temperatur från DS18B20
+            temp_data = 20.32
+            validated_temp = validate_temperature(temp_data)
+            if validated_temp is not None:  # Publicera endast giltig temperatur
+                payload_temp = {"temperature": validated_temp}
+                client.publish(TOPICS["temperature"], json.dumps(payload_temp))
+                print(f"Published: {payload_temp} to {TOPICS['temperature']}")
+
+            # Vindhastighet
+            #wind_data = read_uart_data()  # Läs vindhastighet från UART
+            wind_data = 2.5
+            validated_wind = validate_wind_speed(wind_data)
+            if validated_wind is not None:  # Publicera endast giltig vindhastighet
+                payload_wind = {"wind_speed": validated_wind}
+                client.publish(TOPICS["wind"], json.dumps(payload_wind))
+                print(f"Published: {payload_wind} to {TOPICS['wind']}")
+
+            # Vänta 1 sekund innan nästa läsning och publicering
+            time.sleep(1)
+
+        except Exception as e:
+            print(f"Error while publishing data: {e}")
+
+if __name__ == "__main__":
+    try:
+        # Anslut till MQTT broker
+        client.connect(BROKER, PORT, 60)
+        print("Connected to MQTT broker.")
+        publish_data()
+    except Exception as e:
+        print(f"Failed to connect to MQTT broker: {e}")
